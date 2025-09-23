@@ -25,6 +25,42 @@ func (e *Fasting) PrintCLI() {
 
 	util.IsVKDataMounted()
 
+	e.PrintPreviousTimes()
+
+	e.PrintLastMeal()
+
+}
+
+func (e *Fasting) Undo() error {
+	
+	e.Fasting = e.Fasting[:len(e.Fasting)-1]
+
+	err := e.SaveToFile("./FASTING/fasting.json")
+	if err != nil {
+		return err
+	}
+
+	err = e.SaveToFile("/media/veikko/VK DATA/DATABASES/FASTING/fasting.json")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *Fasting) PrintPreviousTimes() {
+	for id := 0; id < len(e.Fasting)-1; id++ {
+		fmt.Println(
+			e.Fasting[id].DATE.Format("15:04:05"),
+			" - ",
+			e.Fasting[id+1].DATE.Format("15:04:05"),
+			" = ",
+			e.Fasting[id+1].DATE.Sub(e.Fasting[id].DATE),
+		)
+	}
+}
+
+func (e *Fasting) PrintLastMeal() {
 	now := time.Now()
 
 	size := len(e.Fasting)
@@ -92,16 +128,14 @@ func (e *Fasting) Add() error {
 
 	e.Fasting = append(e.Fasting, EatingTime)
 
-	localPath := "./FASTING/fasting.json"
-	linuxPath := "/media/veikko/VK DATA/DATABASES/FASTING/fasting.json"
 	// windowsPath := "D:\\DATABASES\\FASTING\\fasting.json"
 
-	err := e.SaveToFile(localPath)
+	err := e.SaveToFile("./FASTING/fasting.json")
 	if err != nil {
 		return err
 	}
 
-	err = e.SaveToFile(linuxPath)
+	err = e.SaveToFile("/media/veikko/VK DATA/DATABASES/FASTING/fasting.json")
 	if err != nil {
 		return err
 	}

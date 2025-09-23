@@ -22,6 +22,9 @@ func CommandLine(fasting *db.Fasting) {
 				fmt.Println(err)
 			}
 			util.ClearScreen()
+		case "undo":
+			fasting.Undo()
+			util.ClearScreen()
 		case "q", "quit":
 			util.ClearScreen()
 			os.Exit(0)
