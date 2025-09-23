@@ -32,7 +32,7 @@ func (e *Fasting) PrintCLI() {
 }
 
 func (e *Fasting) Undo() error {
-	
+
 	e.Fasting = e.Fasting[:len(e.Fasting)-1]
 
 	err := e.SaveToFile("./FASTING/fasting.json")
@@ -49,15 +49,20 @@ func (e *Fasting) Undo() error {
 }
 
 func (e *Fasting) PrintPreviousTimes() {
+
+	var record time.Duration
+
 	for id := 0; id < len(e.Fasting)-1; id++ {
-		fmt.Println(
-			e.Fasting[id].DATE.Format("15:04:05"),
-			" - ",
-			e.Fasting[id+1].DATE.Format("15:04:05"),
-			" = ",
-			e.Fasting[id+1].DATE.Sub(e.Fasting[id].DATE),
-		)
+		firstMeal := e.Fasting[id].DATE.Format("15:04:05")
+		secondMeal := e.Fasting[id+1].DATE.Format("15:04:05")
+		difference := e.Fasting[id+1].DATE.Sub(e.Fasting[id].DATE)
+
+		if record < difference {
+			record = difference
+		}
+		fmt.Println(firstMeal, " - ", secondMeal, " = ", difference)
 	}
+	fmt.Println(config.Green,"\nRecord time: ", record, config.Reset)
 }
 
 func (e *Fasting) PrintLastMeal() {
