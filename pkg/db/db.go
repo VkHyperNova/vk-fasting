@@ -60,7 +60,7 @@ func (e *Fasting) PrintPreviousTimes() {
 		if record < difference {
 			record = difference
 		}
-		fmt.Println(firstMeal, " - ", secondMeal, " = ", difference)
+		fmt.Printf("%s - %s = %s (%.1f days)\n", firstMeal, secondMeal, difference, difference.Hours()/24)
 	}
 	fmt.Println(config.Green,"\nRecord time: ", record, config.Reset)
 }
