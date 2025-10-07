@@ -72,7 +72,7 @@ func (e *Fasting) PrintLastMeal() {
 
 	if size > 0 {
 		lastMeal := e.Fasting[size-1]
-		fmt.Println("Last Meal: ", lastMeal.DATE.Format("15:04:05"))
+		fmt.Println("Last Meal: ", lastMeal.DATE.Format("Monday 02.01 15:04:05"))
 		fmt.Printf("Elapsed: %v\n", now.Sub(lastMeal.DATE))
 	}
 }
