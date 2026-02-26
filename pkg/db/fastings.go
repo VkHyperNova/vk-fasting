@@ -57,7 +57,7 @@ func (f *Fastings) PrintCLI() {
 func (f *Fastings) PrintAllFasts() {
 	for i, fast := range f.FASTINGS {
 		fmt.Printf(
-			"%d. ID:%d  Start:%s  End:%s  Duration:%s  Weight:%s\n",
+			"%d. ID:%d  Start:%s  End:%s  Duration:%s  Weight:%s kg\n",
 			i+1,
 			fast.ID,
 			fast.START,

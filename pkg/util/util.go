@@ -33,7 +33,6 @@ func HardDriveMountCheck() bool {
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) >= 2 && fields[1] == mountPoint {
-			fmt.Println("VK-DATA is Mounted!")
 			return true
 		}
 	}
