@@ -5,42 +5,130 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"vk-fasting/pkg/color"
 	"vk-fasting/pkg/config"
+
+	"github.com/peterh/liner"
 )
 
-func CreateDatabase(dirName string, fileName string) {
-
-	// Create local path
-	localPath := "./" + dirName + "/" + fileName
-	if _, err := os.Stat(localPath); os.IsNotExist(err) {
-		CreateDirectory(dirName)
-		CreateFile(localPath)
-		fmt.Println("LOCALPATH CREATED!")
+func HardDriveMountCheck() bool {
+	if runtime.GOOS != "linux" {
+		fmt.Println("This program only works on Linux.")
+		return false
 	}
 
-	// Create backup path
-	backupPath := "/media/veikko/VK DATA/DATABASES/" + dirName + "/" + fileName
-	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
-		CreateDirectory("/media/veikko/VK DATA/DATABASES/" + dirName + "/")
-		CreateFile(backupPath)
-		fmt.Println("BACKUP PATH CREATED!")
-	}
-}
+	mountPoint := "/media/veikko/VK\\040DATA" // match /proc/mounts format
 
-func CreateDirectory(dirName string) {
-	err := os.Mkdir(dirName, 0700)
+	file, err := os.Open("/proc/mounts")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Cannot open /proc/mounts:", err)
+		return false
 	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) >= 2 && fields[1] == mountPoint {
+			fmt.Println("VK-DATA is Mounted!")
+			return true
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error scanning /proc/mounts:", err)
+		return false
+	}
+
+	fmt.Println(color.Red + "\nVK DATA is NOT mounted" + color.Reset)
+	return false
 }
 
-func CreateFile(path string) {
-	err := os.WriteFile(path, []byte(`{"fasting": []}`), 0644)
+func Input(prompt string) string {
+
+	line := liner.NewLiner()
+	defer line.Close()
+
+	userInput, err := line.Prompt(prompt)
 	if err != nil {
 		panic(err)
 	}
+	return userInput
+}
+
+func ensureFile(path string, content string) error {
+
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("error creating directory for %s: %w", path, err)
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+			return fmt.Errorf("error creating file %s: %w", path, err)
+		}
+	}
+
+	return nil
+}
+
+func CreateFilesAndFolders() error {
+	
+
+	if err := ensureFile(config.LocalFile, config.DefaultContent); err != nil {
+		return err
+	}
+
+	if !HardDriveMountCheck() {
+		input := Input("Do you want to continue? (y/n) ")
+		if strings.ToLower(strings.TrimSpace(input)) != "y" {
+			fmt.Println("Exiting program.")
+			os.Exit(0)
+		}
+	} else {
+		if err := ensureFile(config.BackupFile, config.DefaultContent); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ReadCommand() (string, int, bool) {
+	reader := bufio.NewReader(os.Stdin)
+
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Input error:", err)
+		return "", 0, false
+	}
+
+	line = strings.TrimSpace(line)
+	parts := strings.Fields(line)
+
+	if len(parts) == 0 {
+		return "", 0, false
+	}
+
+	command := strings.ToLower(parts[0])
+	id := 0
+
+	if len(parts) > 1 {
+		if _, err := fmt.Sscan(parts[1], &id); err != nil {
+			fmt.Println("Invalid ID")
+			return "", 0, false
+		}
+	}
+
+	return command, id, true
+}
+
+func PressAnyKey() {
+	fmt.Print()
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
 }
 
 func ClearScreen() {
@@ -60,44 +148,15 @@ func ClearScreen() {
 	}
 }
 
-func isMounted(mountPoint string) (bool, error) {
-    file, err := os.Open("/proc/mounts")
-    if err != nil {
-        return false, err
-    }
-    defer file.Close()
+func PromptWithSuggestion(name string, suggestion string) string {
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        fields := strings.Fields(line)
-        if len(fields) >= 2 && fields[1] == mountPoint {
-            return true, nil
-        }
-    }
+	line := liner.NewLiner()
+	defer line.Close()
 
-    return false, scanner.Err()
+	input, err := line.PromptWithSuggestion("   "+name+": ", suggestion, -1)
+	if err != nil {
+		panic(err)
+	}
+
+	return input
 }
-
-func IsVKDataMounted() {
-
-	if runtime.GOOS != "linux" {
-        fmt.Println("This program only works on Linux.")
-        return
-    }
-
-	mountPoint := "/media/veikko/VK\\040DATA" // change to your actual mount path
-
-    mounted, err := isMounted(mountPoint)
-    if err != nil {
-        fmt.Println("Error:", err)
-        return
-    }
-
-    if mounted {
-        fmt.Println(config.Green + "<< VK DATA is mounted >>" + config.Reset)
-    } else {
-        fmt.Println(config.Red + "<< VK DATA is NOT mounted >>" + config.Reset)
-    }
-}
-

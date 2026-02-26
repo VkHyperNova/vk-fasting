@@ -1,21 +1,27 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"vk-fasting/pkg/cmd"
 	"vk-fasting/pkg/db"
 	"vk-fasting/pkg/util"
 )
 
 func main() {
-	// It initializes a Quotes database
-	fasting := db.Fasting{}
 
-	// Ensures the necessary directory structure exists
-	util.CreateDatabase("FASTING", "fasting.json")
+	if err := util.CreateFilesAndFolders(); err != nil {
+		fmt.Println("Error creating files/folders:", err)
+		os.Exit(1)
+	}
 
-	// Loads quotes from a file
-	fasting.ReadFromFile("./FASTING/fasting.json")
+	f := db.Fastings{}
 
-	// and starts the command-line interface for user interaction.
-	cmd.CommandLine(&fasting)
+	err := f.ReadFromFile("DATABASES/FASTING/fasting.json")
+	if err != nil {
+		log.Fatalf("Fatal error: failed to load walkings database: %v", err)
+	}
+	
+	cmd.CommandLine(&f)
 }
