@@ -70,95 +70,68 @@ func (f *Fastings) PrintAllFasts() {
 
 func (f *Fastings) Add() error {
 
-	// Get new walk data
-	newFast, err := f.GetUserInput(Fast{})
+	newFast, err := f.promptFastingInput(Fast{})
 	if err != nil {
 		return err
 	}
 
-	// Add unique ID
-	newFast.ID = f.NewID()
+	newFast.ID = f.nextID()
 
-	// Add
 	f.FASTINGS = append(f.FASTINGS, newFast)
 
-	// Save
-	err = f.Save()
-	if err != nil {
-		return err
-	}
-
-
-	return nil
+	return f.saveToFile()
 }
 
 func (f *Fastings) Update(id int) error {
-
-	// Invalid IDs Guard
-	if id <= 0 {
-		return fmt.Errorf("invalid ID: %d", id)
-	}
-
-	// Find and Update
-	for index, fast := range f.FASTINGS {
-
-		// Find walk
-		if fast.ID == id {
-
-			// Get updated fields
-			updatedFast, err := f.GetUserInput(fast)
-			if err != nil {
-				return err
-			}
-
-			// Update
-			f.FASTINGS[index] = updatedFast
-
-			// Save
-			return f.Save()
-		}
-	}
-	return fmt.Errorf("item with ID %d not found", id)
+    index, err := f.indexOf(id)
+    if err != nil {
+        return err
+    }
+    updated, err := f.promptFastingInput(f.FASTINGS[index])
+    if err != nil {
+        return err
+    }
+    f.FASTINGS[index] = updated
+    return f.saveToFile()
 }
 
 func (f *Fastings) Delete(id int) error {
-
-	// Invalid IDs Guard
-	if id <= 0 {
-		return fmt.Errorf("invalid ID: %d", id)
-	}
-
-	// Find and Delete
-	for index, fast := range f.FASTINGS {
-		if fast.ID == id {
-
-			// Delete
-			f.FASTINGS = append((f.FASTINGS)[:index], (f.FASTINGS)[index+1:]...)
-
-			return f.Save()
-		}
-	}
-
-	return fmt.Errorf("item with ID %d not found", id)
+    index, err := f.indexOf(id)
+    if err != nil {
+        return err
+    }
+    f.FASTINGS = append(f.FASTINGS[:index], f.FASTINGS[index+1:]...)
+    return f.saveToFile()
 }
 
-func (f *Fastings) GetUserInput(oldFast Fast) (Fast, error) {
+func (f *Fastings) promptFastingInput(oldFast Fast) (Fast, error) {
+    type field struct {
+        prompt     string
+        suggestion string
+        dest       *string
+    }
 
-	start := util.PromptWithSuggestion("Start Date", oldFast.START)
-	end := util.PromptWithSuggestion("End Date", oldFast.END)
-	days := util.PromptWithSuggestion("Duration", oldFast.DURATION)
-	weight := util.PromptWithSuggestion("Weight", oldFast.WEIGHT)
+    newFast := Fast{ID: oldFast.ID}
 
-	return Fast{
-		ID:       oldFast.ID,
-		START:    start,
-		END:      end,
-		DURATION: days,
-		WEIGHT:   weight,
-	}, nil
+    fields := []field{
+        {"Start Date", oldFast.START,    &newFast.START},
+        {"End Date",   oldFast.END,      &newFast.END},
+        {"Duration",   oldFast.DURATION, &newFast.DURATION},
+        {"Weight",     oldFast.WEIGHT,   &newFast.WEIGHT},
+    }
+
+    for _, f := range fields {
+        val, err := util.PromptWithSuggestion(f.prompt, f.suggestion)
+        if err != nil {
+            return Fast{}, fmt.Errorf("prompting %q: %w", f.prompt, err)
+        }
+        *f.dest = val
+    }
+
+    return newFast, nil
 }
 
-func (f *Fastings) NewID() int {
+func (f *Fastings) nextID() int {
 
 	maxID := 0
 
@@ -171,7 +144,7 @@ func (f *Fastings) NewID() int {
 	return maxID + 1
 }
 
-func (f *Fastings) Save() error {
+func (f *Fastings) saveToFile() error {
 
 	// Format JSON
 	walks, err := json.MarshalIndent(f, "", "  ")
@@ -202,23 +175,41 @@ func (f *Fastings) Undo() bool {
 		return false
 	}
 
-	lastWalk := f.FASTINGS[len(f.FASTINGS)-1]
-	fmt.Println(lastWalk)
+	lastFast := f.FASTINGS[len(f.FASTINGS)-1]
+	fmt.Println(lastFast)
 
-	answer := strings.ToLower(util.PromptWithSuggestion("Are you sure you want to delete?", "No"))
+	answer, err := util.PromptWithSuggestion("Are you sure you want to delete?", "No")
+	if err != nil {
+		fmt.Print(err)
+		return false
+	}
+
+	answer = strings.ToLower(answer)
 
 	if answer == "y" || answer == "yes" {
 		f.FASTINGS = f.FASTINGS[:len(f.FASTINGS)-1]
 
-		if err := f.Save(); err != nil {
+		if err := f.saveToFile(); err != nil {
 			fmt.Println(color.Red+"Error saving data:"+color.Reset, err)
 			return false
 		}
 
-		fmt.Println(color.Yellow + "Last walk removed." + color.Reset)
+		fmt.Println(color.Yellow + "Last fast removed." + color.Reset)
 		return true
 	}
 
 	fmt.Println("Undo cancelled.")
 	return false
+}
+
+func (f *Fastings) indexOf(id int) (int, error) {
+    if id <= 0 {
+        return -1, fmt.Errorf("invalid ID: %d", id)
+    }
+    for i, fast := range f.FASTINGS {
+        if fast.ID == id {
+            return i, nil
+        }
+    }
+    return -1, fmt.Errorf("item with ID %d not found", id)
 }

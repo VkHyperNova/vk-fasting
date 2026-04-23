@@ -5,10 +5,10 @@ import (
 )
 
 var DefaultContent = `{"fastings": []}`
-
 var	file = "fasting.json"
-var baseLocal = "DATABASES"
-var	baseBackup = "/media/veikko/VK DATA/"
+var BaseDB = "FASTING"
+var BaseLocal = "DATABASES"
+var	BaseBackup = "/media/veikko/VK DATA/"
 
-var LocalFile = filepath.Join(baseLocal, "FASTING", file)
-var BackupFile = filepath.Join(baseBackup, "DATABASES", "FASTING", file)
+var LocalFile = filepath.Join(BaseLocal, BaseDB, file)
+var BackupFile = filepath.Join(BaseBackup, BaseLocal, BaseDB, file)

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"vk-fasting/pkg/cmd"
+	"vk-fasting/pkg/config"
 	"vk-fasting/pkg/db"
 	"vk-fasting/pkg/util"
 )
@@ -18,9 +19,9 @@ func main() {
 
 	f := db.Fastings{}
 
-	err := f.ReadFromFile("DATABASES/FASTING/fasting.json")
+	err := f.ReadFromFile(config.LocalFile)
 	if err != nil {
-		log.Fatalf("Fatal error: failed to load walkings database: %v", err)
+		log.Fatalf("Fatal error: failed to load fastings database: %v", err)
 	}
 	
 	cmd.CommandLine(&f)
