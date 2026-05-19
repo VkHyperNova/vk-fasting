@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 	"vk-fasting/pkg/cmd"
 	"vk-fasting/pkg/config"
 	"vk-fasting/pkg/db"
@@ -12,14 +10,14 @@ import (
 
 func main() {
 
-	if err := util.CreateFilesAndFolders(); err != nil {
-		fmt.Println("Error creating files/folders:", err)
-		os.Exit(1)
+	if err := util.InitLocalStorage(); err != nil {
+		log.Fatalf("Error creating files/folders: %v", err)
+
 	}
 
 	f := db.Fastings{}
 
-	err := f.ReadFromFile(config.LocalFile)
+	err := f.LoadFromFile(config.LocalFile)
 	if err != nil {
 		log.Fatalf("Fatal error: failed to load fastings database: %v", err)
 	}

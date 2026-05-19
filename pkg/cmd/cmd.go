@@ -44,6 +44,21 @@ func CommandLine(f *db.Fastings) {
 		case "undo":
 			f.Undo()
 			util.ClearScreen()
+		case "unmount":
+			if err := util.UnmountDrive(); err != nil {
+				fmt.Println(err)
+			}
+			util.PressAnyKey()
+		case "import", "i":
+			if err := f.Import(); err != nil {
+				fmt.Println(err)
+			}
+			util.PressAnyKey()
+		case "export", "e":
+			if err := f.Export(); err != nil {
+				fmt.Println(err)
+			}
+			util.PressAnyKey()
 		case "q", "quit":
 			util.ClearScreen()
 			return

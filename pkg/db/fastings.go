@@ -23,7 +23,7 @@ type Fastings struct {
 	FASTINGS []Fast `json:"fastings"`
 }
 
-func (f *Fastings) ReadFromFile(path string) error {
+func (f *Fastings) LoadFromFile(path string) error {
 
 	// Open file
 	file, err := os.Open(path)
@@ -50,7 +50,7 @@ func (f *Fastings) PrintCLI() {
 	fmt.Println(color.Cyan + "VK-FASTING 1.0" + color.Reset)
 	fmt.Println(color.Cyan + "------------------------" + color.Reset)
 	f.PrintAllFasts()
-	fmt.Println(color.Cyan + "\n< Add Update Delete Undo Quit >" + color.Reset)
+	fmt.Println(color.Cyan + "\n< add, update, delete, undo, unmount, import, export, Quit >" + color.Reset)
 	fmt.Print("=> ")
 }
 
@@ -104,6 +104,77 @@ func (f *Fastings) Delete(id int) error {
     return f.saveToFile()
 }
 
+func (f *Fastings) Export() error {
+
+	input, err := util.PromptWithSuggestion("Export db to d drive? (y/n) ", "n")
+	if err != nil {
+		return err
+	}
+
+	if input == "y" || input == "yes" {
+
+		if err := util.InitBackupStorage(); err != nil {
+			return err
+		}
+
+		if err := f.LoadFromFile(config.LocalFile); err != nil {
+			return fmt.Errorf("load from file: %w", err)
+		}
+
+		finance, err := json.MarshalIndent(f, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(config.BackupFile, finance, 0644); err != nil {
+			return err
+		}
+
+		fmt.Printf("Database exported to %s\nPress Enter!", config.BackupFile)
+		return nil
+	}
+
+	fmt.Println("Export canceled!")
+	return nil
+}
+
+func (f *Fastings) Import() error {
+
+	input, err := util.PromptWithSuggestion("Import db from d drive? (y/n) ", "n")
+	if err != nil {
+		return err
+	}
+
+	if input == "y" || input == "yes" {
+
+		if err := util.InitBackupStorage(); err != nil {
+			return err
+		}
+
+		if err := f.LoadFromFile(config.BackupFile); err != nil {
+			return fmt.Errorf("load from file: %w", err)
+		}
+
+		finance, err := json.MarshalIndent(f, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(config.LocalFile, finance, 0644); err != nil {
+			return err
+		}
+
+		fmt.Printf("Database imported from %s\nPress Enter!", config.BackupFile)
+		return nil
+	}
+
+	fmt.Println("Import canceled!")
+
+	return nil
+}
+
+/* Other */
+
 func (f *Fastings) promptFastingInput(oldFast Fast) (Fast, error) {
     type field struct {
         prompt     string
@@ -146,24 +217,30 @@ func (f *Fastings) nextID() int {
 
 func (f *Fastings) saveToFile() error {
 
+	copySlice := make([]Fast, len(f.FASTINGS))
+	copy(copySlice, f.FASTINGS)
+	copyData := Fastings{FASTINGS: copySlice}
+
 	// Format JSON
-	walks, err := json.MarshalIndent(f, "", "  ")
+	byteValue, err := json.MarshalIndent(copyData, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// Save
-	err = os.WriteFile(config.LocalFile, walks, 0644)
-	if err != nil {
+	// Save local
+		if err := os.WriteFile(config.LocalFile, byteValue, 0644); err != nil {
 		return err
 	}
 
 	// Save Backup
-	if util.HardDriveMountCheck() {
-		err = os.WriteFile(config.BackupFile, walks, 0644)
-		if err != nil {
-			return err
-		}
+	if err := util.InitBackupStorage(); err != nil {
+		fmt.Println(color.Yellow + "Backup init failed: " + err.Error() + color.Reset)
+		return nil // or return err, depending on your needs
+	}
+
+	if err := os.WriteFile(config.BackupFile, byteValue, 0644); err != nil {
+		fmt.Println(color.Yellow + "Backup write failed: " + err.Error() + color.Reset)
+		return nil // same decision here
 	}
 
 	return nil
