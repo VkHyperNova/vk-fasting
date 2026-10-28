@@ -23,8 +23,8 @@ const (
 	driveMountPoint = "/media/veikko/VK DATA"
 	file            = "fasting.json"
 	baseDB          = "FASTING"
-	baseLocal       = "DEVELOPMENT"
-	// baseLocal       = "DATABASES"
+	// baseLocal       = "DEVELOPMENT"
+	baseLocal = "DATABASES"
 
 	usage = `Usage: fasting [command] [id]
 
